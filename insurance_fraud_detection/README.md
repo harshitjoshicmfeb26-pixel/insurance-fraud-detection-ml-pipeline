@@ -1,6 +1,4 @@
 # Insurance Fraud Detection — Deep Neural Network Project
-**PGCP-AI | ACTS Pune | Sessions 3–13**
-
 ## Project Overview
 Binary classification project to detect fraudulent insurance claims using a Deep Neural Network (ANN).  
 Dataset: Vehicle Insurance Claim Fraud Detection (Kaggle — shivamb/vehicle-claim-fraud-detection)
