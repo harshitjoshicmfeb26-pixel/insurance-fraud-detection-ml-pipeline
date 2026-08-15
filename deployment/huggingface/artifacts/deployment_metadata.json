@@ -1,0 +1,59 @@
+{
+  "model_name": "Gradient Boosting",
+  "model_role": "selected deployment model based on F1 and PR-AUC",
+  "selected_threshold": 0.24,
+  "target_column": "FraudFound_P",
+  "feature_count": 29,
+  "feature_order": [
+    "Month",
+    "WeekOfMonth",
+    "DayOfWeek",
+    "Make",
+    "AccidentArea",
+    "DayOfWeekClaimed",
+    "MonthClaimed",
+    "WeekOfMonthClaimed",
+    "Sex",
+    "MaritalStatus",
+    "Age",
+    "Fault",
+    "PolicyType",
+    "VehicleCategory",
+    "VehiclePrice",
+    "Deductible",
+    "DriverRating",
+    "Days_Policy_Accident",
+    "Days_Policy_Claim",
+    "PastNumberOfClaims",
+    "AgeOfVehicle",
+    "AgeOfPolicyHolder",
+    "PoliceReportFiled",
+    "WitnessPresent",
+    "AgentType",
+    "NumberOfSuppliments",
+    "AddressChange_Claim",
+    "NumberOfCars",
+    "BasePolicy"
+  ],
+  "dropped_identifier_columns": [
+    "PolicyNumber",
+    "RepNumber",
+    "Year"
+  ],
+  "preprocessing_version": "canonical 70/15/15 pipeline",
+  "smote_strategy": 0.5,
+  "benchmark_metrics": {
+    "accuracy": 0.8093,
+    "precision": 0.1641,
+    "recall": 0.5362,
+    "f1": 0.2513,
+    "roc_auc": 0.7941,
+    "pr_auc": 0.22
+  },
+  "benchmark_rationale": "Gradient Boosting led the fair benchmark on F1 and PR-AUC. This does not make it universally best.",
+  "artifacts": [
+    "preprocessor.joblib",
+    "gradient_boosting_model.joblib"
+  ],
+  "inference_requires_raw_dataset": false
+}
