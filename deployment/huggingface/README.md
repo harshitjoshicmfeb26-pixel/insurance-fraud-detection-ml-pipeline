@@ -31,9 +31,9 @@ Gradient Boosting is not presented as universally best. Random Forest has the hi
 
 The application accepts the same 29 logical predictor fields used by the canonical local pipeline. It applies the fitted encoder and scaler stored in `preprocessor.joblib` in the exact training feature order. The raw training CSV is not required at inference time.
 
-The model output is a risk signal. “Higher fraud risk / Review recommended” does not mean fraud is confirmed; predictions should support investigation and human review.
+The model output is a model-generated risk signal, not a calibrated real-world probability. “Very High Review Priority” does not mean fraud is confirmed; predictions should support investigation and human review.
 
-The binary benchmark operating threshold is `0.24`. The interface presents separate explanatory bands: below `0.24` is Lower Fraud Risk, `0.24` to below `0.50` is Elevated Fraud Risk, and `0.50` or above is Higher Fraud Risk / Review Recommended. These presentation bands do not change the binary threshold.
+The binary benchmark operating threshold is `0.24`, selected on validation data. The interface presents separate UX interpretation bands: below `0.24` is Lower Fraud Risk, `0.24` to below `0.40` is Elevated Fraud Risk, `0.40` to below `0.50` is High Review Priority, and `0.50` or above is Very High Review Priority. These presentation bands do not change the binary threshold. Scores are interpreted relative to the model's validation-selected operating threshold and should not be interpreted as proof that a claim is fraudulent.
 
 The interface preserves the earlier Space's polished two-column layout, grouped Claim Timing, Vehicle, Policy and Driver, Policyholder, and Incident Details sections, constrained sliders/dropdowns, assessment panel, contextual review cues, and compact explanatory guidance. Its inference backend is the canonical Gradient Boosting bundle described above.
 

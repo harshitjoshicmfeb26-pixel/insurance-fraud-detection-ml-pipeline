@@ -141,9 +141,11 @@ def _frame_from_input(values: Mapping | Sequence):
 def _risk_interpretation(probability):
     if probability < THRESHOLD:
         return "Lower Fraud Risk", "Proceed with standard processing"
-    if probability < 0.50:
+    if probability < 0.40:
         return "Elevated Fraud Risk", "Review claim details and supporting information"
-    return "Higher Fraud Risk - Review Recommended", "Prioritize the claim for investigation"
+    if probability < 0.50:
+        return "High Review Priority", "Prioritize review of claim details and supporting information"
+    return "Very High Review Priority", "Prioritize the claim for investigation"
 
 
 def _context_cues(values):
@@ -208,7 +210,7 @@ def predict_fraud(
         return None, "Input error", str(exc)
     cues = "\n".join(f"- {cue}" for cue in result["context_cues"])
     summary = (
-        f"Fraud Risk Probability : {result['fraud_probability']:.1%}\n"
+        f"Model Fraud Risk Score : {result['fraud_probability']:.1%}\n"
         f"Risk interpretation    : {result['interpretation']}\n"
         f"Review action          : {result['action']}\n\n"
         "Input context (not model explanations):\n"
@@ -216,8 +218,8 @@ def predict_fraud(
         f"{result['disclaimer']}\n\n"
         "Deployment model: Gradient Boosting\n"
         "Selected for F1 and PR-AUC in the comparative benchmark.\n"
-        "Model operating threshold: 0.24, selected on validation data; "
-        "this is not a universal definition of fraud."
+        "Scores are interpreted relative to the model's validation-selected "
+        "operating threshold of 0.24."
     )
     return result["fraud_probability"], result["interpretation"], summary
 
@@ -319,21 +321,24 @@ def create_demo():
             with gr.Column(scale=1):
                 gr.Markdown("### Assessment result")
                 prob_output = gr.Number(
-                    label="Fraud probability (0.0 - 1.0)", precision=3)
+                    label="Model Fraud Risk Score (0.0 - 1.0)", precision=3)
                 tier_output = gr.Textbox(label="Risk tier & decision", lines=1)
                 detail_output = gr.Textbox(
                     label="Full assessment", lines=18)
                 gr.Markdown(
                     "---\n"
                     "#### How to read this\n\n"
-                    "| Probability | Presentation band | Meaning |\n"
+                    "| Model Fraud Risk Score | Presentation band | Meaning |\n"
                     "|---|---|---|\n"
                     "| `< 0.24` | Lower Fraud Risk | Below operating threshold |\n"
-                    "| `0.24 - < 0.50` | Elevated Fraud Risk | Review details |\n"
-                    "| `>= 0.50` | Higher Fraud Risk | Review recommended |\n\n"
+                    "| `0.24 - < 0.40` | Elevated Fraud Risk | Review details |\n"
+                    "| `0.40 - < 0.50` | High Review Priority | Prioritize review |\n"
+                    "| `>= 0.50` | Very High Review Priority | Prioritize investigation |\n\n"
                     "Model operating threshold: **0.24**, selected on validation "
-                    "data. It controls the review flag and is not a universal "
-                    "definition of fraud. The presentation bands are UX guidance.\n\n"
+                    "data. It controls the review flag; the presentation bands "
+                    "are UX guidance only. The score is a model-generated risk "
+                    "signal and should not be interpreted as proof that a claim "
+                    "is fraudulent.\n\n"
                     "This deployment uses Gradient Boosting for its F1 and PR-AUC "
                     "performance. Random Forest leads ROC-AUC, Decision Tree leads "
                     "recall, and ANN v3 is the strongest deep-learning model.\n\n"
