@@ -1,0 +1,33 @@
+{
+  "accuracy": 0.8110678772157371,
+  "precision": 0.13447432762836187,
+  "recall": 0.39855072463768115,
+  "f1": 0.20109689213893966,
+  "roc_auc": 0.7739796768282525,
+  "pr_auc": 0.177151003875686,
+  "threshold": 0.6999999999999996,
+  "tn": 1821,
+  "fp": 354,
+  "fn": 83,
+  "tp": 55,
+  "model": "Optimized ANN",
+  "candidate_id": "s1_ratio020_weight5",
+  "configuration": {
+    "candidate_id": "s1_ratio020_weight5",
+    "hidden_layers": [
+      64,
+      32
+    ],
+    "l2_lambda": 0.01,
+    "dropout_rates": [
+      0.4,
+      0.3
+    ],
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "smote_ratio": 0.2,
+    "fraud_class_weight": 5.0
+  },
+  "selection_rule": "validation PR-AUC, then F1, then ROC-AUC",
+  "checkpoint_path": "C:\\Users\\HARSH\\AI_Work\\insurance-fraud-detection-ml-pipeline\\outputs\\models\\optimized_ann.keras"
+}

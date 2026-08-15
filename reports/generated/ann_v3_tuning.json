@@ -1,0 +1,257 @@
+[
+  {
+    "candidate_id": "s1_ratio010_weight4",
+    "hidden_layers": [
+      64,
+      32
+    ],
+    "l2_lambda": 0.01,
+    "dropout_rates": [
+      0.4,
+      0.3
+    ],
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "smote_ratio": 0.1,
+    "fraud_class_weight": 4.0,
+    "epochs_run": 36,
+    "validation_pr_auc": 0.18855888418795405,
+    "validation_roc_auc": 0.820081009709252,
+    "validation_precision": 0.18465227817745802,
+    "validation_recall": 0.5539568345323741,
+    "validation_f1": 0.27697841726618705,
+    "validation_threshold": 0.48999999999999977
+  },
+  {
+    "candidate_id": "s1_ratio015_weight5",
+    "hidden_layers": [
+      64,
+      32
+    ],
+    "l2_lambda": 0.01,
+    "dropout_rates": [
+      0.4,
+      0.3
+    ],
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "smote_ratio": 0.15,
+    "fraud_class_weight": 5.0,
+    "epochs_run": 33,
+    "validation_pr_auc": 0.17014254497219444,
+    "validation_roc_auc": 0.8100275988960441,
+    "validation_precision": 0.18271604938271604,
+    "validation_recall": 0.5323741007194245,
+    "validation_f1": 0.27205882352941174,
+    "validation_threshold": 0.6399999999999997
+  },
+  {
+    "candidate_id": "s1_ratio020_weight5",
+    "hidden_layers": [
+      64,
+      32
+    ],
+    "l2_lambda": 0.01,
+    "dropout_rates": [
+      0.4,
+      0.3
+    ],
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "smote_ratio": 0.2,
+    "fraud_class_weight": 5.0,
+    "epochs_run": 42,
+    "validation_pr_auc": 0.20065883873910534,
+    "validation_roc_auc": 0.8212590920823598,
+    "validation_precision": 0.19895287958115182,
+    "validation_recall": 0.5467625899280576,
+    "validation_f1": 0.29174664107485604,
+    "validation_threshold": 0.6999999999999996
+  },
+  {
+    "candidate_id": "s1_ratio025_weight6",
+    "hidden_layers": [
+      64,
+      32
+    ],
+    "l2_lambda": 0.01,
+    "dropout_rates": [
+      0.4,
+      0.3
+    ],
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "smote_ratio": 0.25,
+    "fraud_class_weight": 6.0,
+    "epochs_run": 54,
+    "validation_pr_auc": 0.17651513070665925,
+    "validation_roc_auc": 0.8053715261461484,
+    "validation_precision": 0.16353383458646617,
+    "validation_recall": 0.6258992805755396,
+    "validation_f1": 0.2593144560357675,
+    "validation_threshold": 0.6499999999999997
+  },
+  {
+    "candidate_id": "s2_96x48",
+    "hidden_layers": [
+      96,
+      48
+    ],
+    "l2_lambda": 0.005,
+    "dropout_rates": [
+      0.3,
+      0.2
+    ],
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "smote_ratio": 0.2,
+    "fraud_class_weight": 5.0,
+    "epochs_run": 38,
+    "validation_pr_auc": 0.17846245560648272,
+    "validation_roc_auc": 0.8096040187169492,
+    "validation_precision": 0.17330677290836655,
+    "validation_recall": 0.6258992805755396,
+    "validation_f1": 0.2714508580343214,
+    "validation_threshold": 0.5799999999999997
+  },
+  {
+    "candidate_id": "s2_128x64",
+    "hidden_layers": [
+      128,
+      64
+    ],
+    "l2_lambda": 0.005,
+    "dropout_rates": [
+      0.3,
+      0.2
+    ],
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "smote_ratio": 0.2,
+    "fraud_class_weight": 5.0,
+    "epochs_run": 58,
+    "validation_pr_auc": 0.20059517794637832,
+    "validation_roc_auc": 0.81916104650778,
+    "validation_precision": 0.203125,
+    "validation_recall": 0.4676258992805755,
+    "validation_f1": 0.28322440087145967,
+    "validation_threshold": 0.6099999999999998
+  },
+  {
+    "candidate_id": "s2_128x64x32",
+    "hidden_layers": [
+      128,
+      64,
+      32
+    ],
+    "l2_lambda": 0.005,
+    "dropout_rates": [
+      0.3,
+      0.2,
+      0.2
+    ],
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "smote_ratio": 0.2,
+    "fraud_class_weight": 5.0,
+    "epochs_run": 27,
+    "validation_pr_auc": 0.19715522057587057,
+    "validation_roc_auc": 0.8140085907355072,
+    "validation_precision": 0.16988416988416988,
+    "validation_recall": 0.6330935251798561,
+    "validation_f1": 0.2678843226788432,
+    "validation_threshold": 0.6699999999999997
+  },
+  {
+    "candidate_id": "s2_64x32_light",
+    "hidden_layers": [
+      64,
+      32
+    ],
+    "l2_lambda": 0.001,
+    "dropout_rates": [
+      0.2,
+      0.2
+    ],
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "smote_ratio": 0.2,
+    "fraud_class_weight": 5.0,
+    "epochs_run": 34,
+    "validation_pr_auc": 0.15905474094066066,
+    "validation_roc_auc": 0.8011952903178837,
+    "validation_precision": 0.17464788732394365,
+    "validation_recall": 0.4460431654676259,
+    "validation_f1": 0.25101214574898784,
+    "validation_threshold": 0.6999999999999996
+  },
+  {
+    "candidate_id": "s3_lr0005_batch64",
+    "hidden_layers": [
+      128,
+      64
+    ],
+    "l2_lambda": 0.005,
+    "dropout_rates": [
+      0.3,
+      0.2
+    ],
+    "learning_rate": 0.0005,
+    "batch_size": 64,
+    "smote_ratio": 0.2,
+    "fraud_class_weight": 5.0,
+    "epochs_run": 27,
+    "validation_pr_auc": 0.16291028140534072,
+    "validation_roc_auc": 0.8016486534783214,
+    "validation_precision": 0.16352201257861634,
+    "validation_recall": 0.5611510791366906,
+    "validation_f1": 0.2532467532467532,
+    "validation_threshold": 0.6899999999999997
+  },
+  {
+    "candidate_id": "s3_lr001_batch128",
+    "hidden_layers": [
+      128,
+      64
+    ],
+    "l2_lambda": 0.005,
+    "dropout_rates": [
+      0.3,
+      0.2
+    ],
+    "learning_rate": 0.001,
+    "batch_size": 128,
+    "smote_ratio": 0.2,
+    "fraud_class_weight": 5.0,
+    "epochs_run": 22,
+    "validation_pr_auc": 0.14818758458695067,
+    "validation_roc_auc": 0.7987663227283858,
+    "validation_precision": 0.17233009708737865,
+    "validation_recall": 0.5107913669064749,
+    "validation_f1": 0.2577132486388385,
+    "validation_threshold": 0.6299999999999997
+  },
+  {
+    "candidate_id": "s3_lr002_batch64",
+    "hidden_layers": [
+      128,
+      64
+    ],
+    "l2_lambda": 0.005,
+    "dropout_rates": [
+      0.3,
+      0.2
+    ],
+    "learning_rate": 0.002,
+    "batch_size": 64,
+    "smote_ratio": 0.2,
+    "fraud_class_weight": 5.0,
+    "epochs_run": 25,
+    "validation_pr_auc": 0.18672818434478683,
+    "validation_roc_auc": 0.8106563507243882,
+    "validation_precision": 0.1830601092896175,
+    "validation_recall": 0.48201438848920863,
+    "validation_f1": 0.26534653465346536,
+    "validation_threshold": 0.7499999999999997
+  }
+]

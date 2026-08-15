@@ -1,0 +1,21 @@
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Raw/local datasets
+data/raw/FraudDataset.csv
+data/processed/
+
+# Intermediate ANN tuning checkpoints
+outputs/models/optimization_candidates/
+
+# Local tooling and editor files
+.coverage
+htmlcov/
+.DS_Store
+.vscode/
+.idea/
