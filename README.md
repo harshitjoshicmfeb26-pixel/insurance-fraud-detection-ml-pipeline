@@ -7,7 +7,7 @@ The results show that different models are strongest for different operational g
 **Live Demo:** https://huggingface.co/spaces/harshitjoshiai/insurance-fraud-detector
 **Repository:** https://github.com/harshitjoshicmfeb26-pixel/insurance-fraud-detection-ml-pipeline
 
-The live Hugging Face Space is a separately deployed, earlier notebook-derived ANN application. It is not automatically updated by this repository and does not currently serve ANN v3 or the classical benchmark models.
+The live Hugging Face Space is a separately deployed Gradio application. It currently serves the Gradient Boosting model using the canonical preprocessing pipeline; the broader project still evaluates both classical machine-learning and TensorFlow/Keras deep-learning models.
 
 ## Business problem
 
@@ -113,7 +113,7 @@ The evaluation flow is:
 validation probabilities -> select threshold -> freeze threshold -> final test evaluation
 ~~~
 
-The default threshold of 0.50 is not assumed automatically. ANN v3 uses its validation-selected threshold of `0.64`; classical models receive their own validation-selected thresholds. These benchmark thresholds must not be confused with the live Hugging Face application's risk tiers.
+The default threshold of 0.50 is not assumed automatically. ANN v3 uses its validation-selected threshold of `0.64`; classical models receive their own validation-selected thresholds. These benchmark thresholds must not be confused with the live Hugging Face application's presentation bands. The live deployment's validation-selected operating threshold is `0.24`; its additional score bands are UX interpretation only.
 
 ## ANN development and model naming
 
@@ -162,18 +162,20 @@ The canonical ANN is an earlier corrected reference ANN used in the primary benc
 
 Live Space: https://huggingface.co/spaces/harshitjoshiai/insurance-fraud-detector
 
-The live demo is a Gradio-based ANN fraud-risk demonstration created from the earlier notebook-derived workflow. It currently loads:
+The live demo is a Gradio-based Gradient Boosting fraud-risk application. Gradient Boosting was selected for deployment because it achieved the highest F1 and PR-AUC in the comparative benchmark. It currently uses:
 
-- `fraud_detector_final.keras`
-- `scaler.joblib`
+- `artifacts/gradient_boosting_model.joblib`
+- `artifacts/preprocessor.joblib`
+- `artifacts/deployment_metadata.json`
 
-Its current risk tiers are:
+The validation-selected operating threshold is `0.24`. The interface displays these presentation bands:
 
-- `< 0.40`: Low Risk
-- `0.40–0.59`: Medium Risk
-- `>= 0.60`: High Risk
+- `< 0.24`: Lower Fraud Risk
+- `0.24–<0.40`: Elevated Fraud Risk
+- `0.40–<0.50`: High Review Priority
+- `>= 0.50`: Very High Review Priority
 
-The live deployment has not been migrated to ANN v3, the optimized ANN, the canonical ANN, Random Forest, or Gradient Boosting. Any future Space update must preserve its model filename, scaler filename, feature order, categorical mappings, input field names, and risk thresholds unless the Space is updated together with those changes.
+The `0.24` value is the binary operating threshold selected on validation data; the additional score bands are presentation guidance and do not change that threshold. The score is a model-generated risk signal, not proof that a claim is fraudulent. Any future Space update must preserve the model filename, preprocessing artifact, feature order, categorical mappings, input field names, and operating threshold unless the Space is updated together with those changes.
 
 ## Repository structure
 
@@ -276,14 +278,14 @@ Python, Pandas, NumPy, scikit-learn, imbalanced-learn/SMOTE, TensorFlow/Keras, M
 - Concept drift and production monitoring are not implemented.
 - The project does not use claim images, documents, text, voice, or telematics.
 - Probability calibration is not implemented.
-- The live Hugging Face demo still uses earlier notebook-derived artifacts.
+- The live Hugging Face demo is a separately deployed application and is not automatically updated by this repository.
 - Dataset redistribution and licensing require verification.
 
 Deep learning may become more competitive with substantially more minority examples, richer feature interactions, sequential behavior, or multimodal inputs. Larger data alone does not guarantee that an ANN will outperform classical ML; that must still be validated empirically.
 
 ## Future work
 
-Potential next steps include SHAP explanations, calibrated probabilities, cost-sensitive thresholding, richer fraud signals, multimodal claim analysis, cross-validation, additional validation-only optimization, drift monitoring, a production API, experiment tracking, and migration of a selected evaluated model to Hugging Face.
+Potential next steps include SHAP explanations, calibrated probabilities, cost-sensitive thresholding, richer fraud signals, multimodal claim analysis, cross-validation, additional validation-only optimization, drift monitoring, a production API, and experiment tracking.
 
 ## Resume verification
 
@@ -291,4 +293,4 @@ The resume description is broadly defensible for the implemented preprocessing, 
 
 The phrase **feature engineering** may be overstated: the current pipeline primarily performs cleaning, identifier removal, categorical encoding, and scaling rather than extensive derived-feature creation. A more precise resume phrase would be “data cleaning and preprocessing” unless meaningful domain-derived features are added later.
 
-The project supports an end-to-end fraud-detection workflow and a live ANN demonstration, but the live Space is separate from the corrected local benchmark artifacts. No claim should describe ANN v3 as the overall best model or imply that deep learning outperformed classical ML.
+The project supports an end-to-end fraud-detection workflow and a live Gradient Boosting demonstration. The live Space is separate from the broader benchmark artifacts. No claim should describe ANN v3 as the overall best model or imply that deep learning outperformed classical ML.
