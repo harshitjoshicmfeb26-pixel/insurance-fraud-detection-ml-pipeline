@@ -1,4 +1,4 @@
-"""Local Gradio shell preserving the legacy grouped claim-form UX."""
+"""Gradio interface for insurance fraud investigation decision support."""
 import json
 import sys
 from pathlib import Path
@@ -201,6 +201,29 @@ def score_uploaded_claims(file_path):
     return scored, summary
 
 
+def _primary_queue_view(scored):
+    """Return the concise operational view while retaining full scored output."""
+    return scored.rename(columns={
+        "investigation_rank": "Rank",
+        "claim_id": "Claim Reference",
+        "fraud_probability": "Fraud Probability",
+        "risk_band": "Risk Band",
+        "review_priority": "Review Priority",
+        "recommended_action": "Recommended Action",
+    })[[
+        "Rank", "Claim Reference", "Fraud Probability", "Risk Band",
+        "Review Priority", "Recommended Action",
+    ]]
+
+
+def score_uploaded_claims_with_detail(file_path):
+    """Return the concise queue, full scored detail, and operational summary."""
+    scored, summary = score_uploaded_claims(file_path)
+    if scored.empty:
+        return scored, scored, summary
+    return _primary_queue_view(scored), scored, summary
+
+
 def predict_fraud(
     month, week_of_month, day_of_week, make, accident_area,
     day_of_week_claimed, month_claimed, week_of_month_claimed,
@@ -221,158 +244,217 @@ def predict_fraud(
         result = predict_claim(values)
     except (TypeError, ValueError, KeyError) as exc:
         return None, "Input error", str(exc)
+    summary = _assessment_summary(result)
+    return result["fraud_probability"], result["interpretation"], summary
+
+
+def _assessment_summary(result):
     cues = "\n".join(f"- {cue}" for cue in result["context_cues"])
-    summary = (
+    return (
         f"Model Fraud Risk Score : {result['fraud_probability']:.1%}\n"
         f"Risk interpretation    : {result['risk_band']}\n"
         f"Review priority        : {result['review_priority']}\n"
         f"Recommended action     : {result['recommended_action']}\n"
         f"Above threshold (0.24): {result['above_operating_threshold']}\n\n"
         f"Business interpretation: {result['business_interpretation']}\n\n"
-        "Contextual review cues (not SHAP/model explanations):\n"
+        "Contextual review cues:\n"
         f"{cues}\n\n"
         f"{result['disclaimer']}\n\n"
-        "Deployment model: Gradient Boosting\n"
-        "Selected for F1 and PR-AUC in the comparative benchmark.\n"
-        "Scores are interpreted relative to the model's validation-selected "
-        "operating threshold of 0.24."
+        "Deployed model: Gradient Boosting. Scores are interpreted relative "
+        "to the validated operating threshold of 0.24."
     )
-    return result["fraud_probability"], result["interpretation"], summary
+
+
+def predict_fraud_display(*values):
+    """Presentation adapter exposing decision fields without changing scoring."""
+    result = predict_claim(values)
+    return (
+        result["fraud_probability"],
+        result["risk_band"],
+        result["review_priority"],
+        result["recommended_action"],
+        _assessment_summary(result),
+    )
 
 
 def _dropdown(column, value, label):
     return gr.Dropdown(VISIBLE_CHOICES[column], value=value, label=label)
 
 
+PRODUCT_TITLE = "Insurance Fraud Investigation Decision Support"
+APP_CSS = """
+.gradio-container { max-width: 1440px !important; }
+#app-header { border-bottom: 1px solid #d9e2ec; margin-bottom: 1.25rem; }
+#app-header h1 { margin-bottom: 0.35rem; color: #17324d; }
+#app-header p { color: #526477; max-width: 930px; }
+#decision-summary { border: 1px solid #d9e2ec; border-radius: 10px; padding: 1rem; }
+#decision-summary textarea, #decision-summary input { font-weight: 600; }
+#queue-table th { white-space: normal !important; }
+"""
+
+
 def create_demo():
     if gr is None:
         raise RuntimeError("Gradio is required to launch the deployment app")
-    with gr.Blocks(title="Insurance Fraud Detector") as demo:
+    with gr.Blocks(title=PRODUCT_TITLE) as demo:
         gr.Markdown(
-            "# 🛡️ Insurance Fraud Detection\n"
-            "Fill in all claim fields and click **Assess fraud risk**.\n"
-            "This interactive demo currently uses Gradient Boosting, selected "
-            "for its F1 and PR-AUC performance in the comparative benchmark.\n"
-            "Predictions are risk signals for investigation support, not proof of fraud.")
+            f"# {PRODUCT_TITLE}\n"
+            "Assess individual claims or prioritize a batch of claims for review. "
+            "Outputs are decision-support signals for trained insurance teams and "
+            "do not establish fraud.", elem_id="app-header")
 
-        with gr.Row():
-            with gr.Column(scale=1):
-                gr.Markdown("### Claim details")
-                with gr.Row():
-                    month = _dropdown("Month", "Jan", "Month of accident")
-                    month_claimed = _dropdown("MonthClaimed", "Jan", "Month claim filed")
-                with gr.Row():
-                    week_of_month = gr.Slider(1, 5, value=3, step=1,
-                                              label="Week of month (accident)")
-                    week_of_month_claimed = gr.Slider(1, 5, value=3, step=1,
-                                                       label="Week of month (claim)")
-                with gr.Row():
-                    day_of_week = _dropdown("DayOfWeek", "Monday", "Day of accident")
-                    day_of_week_claimed = _dropdown(
-                        "DayOfWeekClaimed", "Monday", "Day claim filed")
+        with gr.Tabs():
+            with gr.Tab("Claim Assessment"):
+                with gr.Row(equal_height=False):
+                    with gr.Column(scale=6):
+                        gr.Markdown("### Claim information")
+                        with gr.Row():
+                            month = _dropdown("Month", "Jan", "Month of accident")
+                            month_claimed = _dropdown(
+                                "MonthClaimed", "Jan", "Month claim filed")
+                        with gr.Row():
+                            week_of_month = gr.Slider(
+                                1, 5, value=3, step=1, label="Accident week (1–5)")
+                            week_of_month_claimed = gr.Slider(
+                                1, 5, value=3, step=1, label="Claim week (1–5)")
+                        with gr.Row():
+                            day_of_week = _dropdown(
+                                "DayOfWeek", "Monday", "Day of accident")
+                            day_of_week_claimed = _dropdown(
+                                "DayOfWeekClaimed", "Monday", "Day claim filed")
 
-                gr.Markdown("#### Vehicle")
-                with gr.Row():
-                    make = _dropdown("Make", "Honda", "Make")
-                    vehicle_category = _dropdown("VehicleCategory", "Sport",
-                                                 "Vehicle category")
-                with gr.Row():
-                    vehicle_price = _dropdown("VehiclePrice", "more than 69000",
-                                              "Vehicle price")
-                    age_of_vehicle = _dropdown("AgeOfVehicle", "3 years",
-                                               "Age of vehicle")
+                        gr.Markdown("#### Vehicle")
+                        with gr.Row():
+                            make = _dropdown("Make", "Honda", "Make")
+                            vehicle_category = _dropdown(
+                                "VehicleCategory", "Sport", "Vehicle category")
+                        with gr.Row():
+                            vehicle_price = _dropdown(
+                                "VehiclePrice", "more than 69000", "Vehicle price")
+                            age_of_vehicle = _dropdown(
+                                "AgeOfVehicle", "3 years", "Age of vehicle")
 
-                gr.Markdown("#### Policy & driver")
-                with gr.Row():
-                    policy_type = _dropdown("PolicyType", "Sport - Collision",
-                                            "Policy type")
-                    base_policy = _dropdown("BasePolicy", "Collision", "Base policy")
-                with gr.Row():
-                    fault = _dropdown("Fault", "Policy Holder", "Fault")
-                    agent_type = _dropdown("AgentType", "External", "Agent type")
-                with gr.Row():
-                    deductible = gr.Slider(300, 700, value=400, step=100,
-                                           label="Deductible ($)")
-                    driver_rating = gr.Slider(
-                        1, 4, value=2, step=1,
-                        label="Driver rating (1=poor, 4=excellent)")
+                        gr.Markdown("#### Policy and driver")
+                        with gr.Row():
+                            policy_type = _dropdown(
+                                "PolicyType", "Sport - Collision", "Policy type")
+                            base_policy = _dropdown(
+                                "BasePolicy", "Collision", "Base policy")
+                        with gr.Row():
+                            fault = _dropdown("Fault", "Policy Holder", "Fault")
+                            agent_type = _dropdown(
+                                "AgentType", "External", "Agent type")
+                        with gr.Row():
+                            deductible = gr.Slider(
+                                300, 700, value=400, step=100, label="Deductible ($)")
+                            driver_rating = gr.Slider(
+                                1, 4, value=2, step=1, label="Driver rating (1–4)")
 
-                gr.Markdown("#### Policyholder")
-                with gr.Row():
-                    sex = _dropdown("Sex", "Male", "Sex")
-                    marital_status = _dropdown("MaritalStatus", "Single",
-                                               "Marital status")
-                with gr.Row():
-                    age = gr.Slider(16, 80, value=35, step=1, label="Age")
+                        gr.Markdown("#### Policyholder")
+                        with gr.Row():
+                            sex = _dropdown("Sex", "Male", "Sex")
+                            marital_status = _dropdown(
+                                "MaritalStatus", "Single", "Marital status")
+                        age = gr.Slider(16, 80, value=35, step=1, label="Age")
 
-                gr.Markdown("#### Incident details")
-                with gr.Row():
-                    accident_area = _dropdown("AccidentArea", "Urban",
-                                               "Accident area")
-                    num_cars = _dropdown("NumberOfCars", "1 vehicle",
-                                         "Number of cars")
-                with gr.Row():
-                    police_report = _dropdown("PoliceReportFiled", "No",
-                                              "Police report filed")
-                    witness_present = _dropdown("WitnessPresent", "No",
-                                                "Witness present")
-                with gr.Row():
-                    days_policy_accident = _dropdown(
-                        "Days_Policy_Accident", "more than 30",
-                        "Days: policy to accident")
-                    days_policy_claim = _dropdown(
-                        "Days_Policy_Claim", "more than 30",
-                        "Days: policy to claim")
-                with gr.Row():
-                    past_claims = _dropdown("PastNumberOfClaims", "none",
-                                            "Past claims")
-                    num_supplements = _dropdown("NumberOfSuppliments", "none",
-                                                "Supplements")
-                address_change = _dropdown(
-                    "AddressChange_Claim", "no change",
-                    "Address change before claim")
-                submit_btn = gr.Button("Assess fraud risk",
-                                       variant="primary", size="lg")
+                        gr.Markdown("#### Incident details")
+                        with gr.Row():
+                            accident_area = _dropdown(
+                                "AccidentArea", "Urban", "Accident area")
+                            num_cars = _dropdown(
+                                "NumberOfCars", "1 vehicle", "Number of cars")
+                        with gr.Row():
+                            police_report = _dropdown(
+                                "PoliceReportFiled", "No", "Police report filed")
+                            witness_present = _dropdown(
+                                "WitnessPresent", "No", "Witness present")
+                        with gr.Row():
+                            days_policy_accident = _dropdown(
+                                "Days_Policy_Accident", "more than 30",
+                                "Policy-to-accident interval")
+                            days_policy_claim = _dropdown(
+                                "Days_Policy_Claim", "more than 30",
+                                "Policy-to-claim interval")
+                        with gr.Row():
+                            past_claims = _dropdown(
+                                "PastNumberOfClaims", "none", "Past claims")
+                            num_supplements = _dropdown(
+                                "NumberOfSuppliments", "none", "Supplements")
+                        address_change = _dropdown(
+                            "AddressChange_Claim", "no change",
+                            "Address change before claim")
+                        submit_btn = gr.Button(
+                            "Assess claim", variant="primary", size="lg")
 
-            with gr.Column(scale=1):
-                gr.Markdown("### Assessment result")
-                prob_output = gr.Number(
-                    label="Model Fraud Risk Score (0.0 - 1.0)", precision=3)
-                tier_output = gr.Textbox(label="Risk tier & decision", lines=1)
-                detail_output = gr.Textbox(
-                    label="Full assessment", lines=18)
+                    with gr.Column(scale=5, elem_id="decision-summary"):
+                        gr.Markdown("### Decision summary")
+                        gr.Markdown(
+                            "Review the model signal alongside the policy context. "
+                            "The validated operating threshold is **0.24**.")
+                        prob_output = gr.Number(
+                            label="Fraud probability", precision=3, interactive=False)
+                        with gr.Row():
+                            tier_output = gr.Textbox(
+                                label="Risk band", lines=1, interactive=False)
+                            priority_output = gr.Textbox(
+                                label="Review priority", lines=1, interactive=False)
+                        action_output = gr.Textbox(
+                            label="Recommended action", lines=1, interactive=False)
+                        detail_output = gr.Textbox(
+                            label="Assessment details", lines=11, interactive=False)
+                        gr.Markdown(
+                            "**Decision-support notice**  \n"
+                            "The model output is a risk estimation for investigation "
+                            "support, not confirmation of fraud.")
+
+                with gr.Accordion("How to interpret the score", open=False):
+                    gr.Markdown(
+                        "| Probability | Risk band | Operational meaning |\n"
+                        "|---|---|---|\n"
+                        "| `< 0.24` | Lower Fraud Risk | Standard processing |\n"
+                        "| `0.24 - < 0.40` | Elevated Fraud Risk | Review details |\n"
+                        "| `0.40 - < 0.50` | High Review Priority | Prioritize review |\n"
+                        "| `>= 0.50` | Very High Review Priority | Prioritize investigation |\n\n"
+                        "The operating threshold controls the review flag. Presentation "
+                        "bands are guidance for prioritization and do not change the "
+                        "underlying model score.")
+                with gr.Accordion("About the model", open=False):
+                    gr.Markdown(
+                        "- Deployed model: **Gradient Boosting**\n"
+                        f"- Model inputs: **{len(FEATURE_COLUMNS)}**\n"
+                        f"- Validated operating threshold: **{THRESHOLD:.2f}**\n"
+                        "- Output: model-estimated fraud risk for decision support, "
+                        "not proof of fraud")
+
+            with gr.Tab("Investigation Queue"):
+                gr.Markdown("### Investigation Queue")
                 gr.Markdown(
-                    "---\n"
-                    "#### How to read this\n\n"
-                    "| Model Fraud Risk Score | Presentation band | Meaning |\n"
-                    "|---|---|---|\n"
-                    "| `< 0.24` | Lower Fraud Risk | Below operating threshold |\n"
-                    "| `0.24 - < 0.40` | Elevated Fraud Risk | Review details |\n"
-                    "| `0.40 - < 0.50` | High Review Priority | Prioritize review |\n"
-                    "| `>= 0.50` | Very High Review Priority | Prioritize investigation |\n\n"
-                    "Model operating threshold: **0.24**, selected on validation "
-                    "data. It controls the review flag; the presentation bands "
-                    "are UX guidance only. The score is a model-generated risk "
-                    "signal and should not be interpreted as proof that a claim "
-                    "is fraudulent.\n\n"
-                    "This deployment uses Gradient Boosting for its F1 and PR-AUC "
-                    "performance. Random Forest leads ROC-AUC, Decision Tree leads "
-                    "recall, and ANN v3 is the strongest deep-learning model.\n\n"
-                    "Predictions support investigation and do not establish fraud.")
-
-        with gr.Tab("Investigation Queue"):
-            gr.Markdown(
-                "### Investigation Queue\n"
-                "Upload a claims CSV using the same 29 predictor fields as the "
-                "claim form. `PolicyNumber`, when present, is display-only and "
-                "is excluded from model features. The queue ranks claims by "
-                "model score descending.")
-            batch_file = gr.File(label="Claims CSV", file_types=[".csv"])
-            batch_button = gr.Button("Score claims", variant="primary")
-            batch_summary = gr.Markdown()
-            batch_table = gr.Dataframe(label="Ranked investigation queue")
-            batch_button.click(fn=score_uploaded_claims, inputs=batch_file,
-                               outputs=[batch_table, batch_summary])
+                    "Claims are ranked from highest to lowest model-estimated fraud "
+                    "probability so investigators can review higher-risk claims first.")
+                gr.Markdown(
+                    "Upload multiple claims using the same predictor schema as the "
+                    "model. Each row represents one claim. `FraudFound_P` is not "
+                    "required for prediction. `PolicyNumber` may be included as a "
+                    "display reference but is not used by the model.")
+                with gr.Row():
+                    batch_file = gr.File(
+                        label="Claims CSV", file_types=[".csv"], scale=3)
+                    batch_button = gr.Button(
+                        "Score claims", variant="primary", scale=1)
+                batch_summary = gr.Markdown()
+                batch_table = gr.Dataframe(
+                    label="Primary investigation queue", wrap=True, max_height=360,
+                    elem_id="queue-table")
+                with gr.Accordion("Detailed scored output", open=False):
+                    gr.Markdown(
+                        "The full scored result is retained here for operational "
+                        "review and downstream export.")
+                    batch_detail = gr.Dataframe(
+                        label="Full scored results", wrap=True, max_height=360)
+                batch_button.click(
+                    fn=score_uploaded_claims_with_detail,
+                    inputs=batch_file,
+                    outputs=[batch_table, batch_detail, batch_summary])
 
         all_inputs = [
             month, week_of_month, day_of_week, make, accident_area,
@@ -383,10 +465,16 @@ def create_demo():
             police_report, witness_present, agent_type, num_supplements,
             address_change, num_cars, base_policy]
         submit_btn.click(
-            fn=predict_fraud, inputs=all_inputs,
-            outputs=[prob_output, tier_output, detail_output])
+            fn=predict_fraud_display,
+            inputs=all_inputs,
+            outputs=[prob_output, tier_output, priority_output,
+                     action_output, detail_output])
     return demo
 
 
 if __name__ == "__main__":
-    create_demo().launch(theme=gr.themes.Soft())
+    create_demo().launch(
+        theme=gr.themes.Soft(
+            primary_hue="blue", secondary_hue="slate", neutral_hue="slate"),
+        css=APP_CSS,
+    )
