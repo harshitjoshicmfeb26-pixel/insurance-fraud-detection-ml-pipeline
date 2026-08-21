@@ -162,7 +162,7 @@ def prepare_training_data(df: pd.DataFrame, random_state: int = RANDOM_STATE,
 def encode_categoricals(df: pd.DataFrame) -> pd.DataFrame:
     """Compatibility helper for legacy tests; canonical code uses train-fitted OrdinalEncoder."""
     result = df.copy()
-    for col in result.select_dtypes(include=["object", "str", "string", "category"]).columns:
+    for col in result.select_dtypes(include=["object", "string", "category"]).columns:
         result[col] = pd.factorize(result[col].astype(str), sort=True)[0]
     return result
 
