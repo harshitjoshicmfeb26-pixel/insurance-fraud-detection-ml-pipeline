@@ -1,0 +1,9 @@
+{
+  "source": "FraudDataset.csv final test split",
+  "split": "canonical stratified 70/15/15, random_state=42",
+  "model": "GradientBoostingClassifier deployment artifact",
+  "threshold": 0.24,
+  "test_claims": 2313,
+  "test_fraud_cases": 138,
+  "rounding": "ceil(K% \u00d7 total claims)"
+}

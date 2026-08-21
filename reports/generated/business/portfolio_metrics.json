@@ -1,0 +1,46 @@
+[
+  {
+    "percentage":1.0,
+    "claims_reviewed":24,
+    "fraud_selected":12,
+    "total_claims":2313,
+    "total_fraud":138,
+    "fraud_capture":0.0869565217,
+    "precision":0.5,
+    "lift":8.3804347826,
+    "rounding":"ceil(K% \u00d7 total claims)"
+  },
+  {
+    "percentage":5.0,
+    "claims_reviewed":116,
+    "fraud_selected":27,
+    "total_claims":2313,
+    "total_fraud":138,
+    "fraud_capture":0.1956521739,
+    "precision":0.2327586207,
+    "lift":3.9012368816,
+    "rounding":"ceil(K% \u00d7 total claims)"
+  },
+  {
+    "percentage":10.0,
+    "claims_reviewed":232,
+    "fraud_selected":45,
+    "total_claims":2313,
+    "total_fraud":138,
+    "fraud_capture":0.3260869565,
+    "precision":0.1939655172,
+    "lift":3.2510307346,
+    "rounding":"ceil(K% \u00d7 total claims)"
+  },
+  {
+    "percentage":20.0,
+    "claims_reviewed":463,
+    "fraud_selected":74,
+    "total_claims":2313,
+    "total_fraud":138,
+    "fraud_capture":0.5362318841,
+    "precision":0.1598272138,
+    "lift":2.6788430839,
+    "rounding":"ceil(K% \u00d7 total claims)"
+  }
+]

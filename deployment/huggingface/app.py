@@ -1,5 +1,6 @@
 """Local Gradio shell preserving the legacy grouped claim-form UX."""
 import json
+import sys
 from pathlib import Path
 from typing import Mapping, Sequence
 
@@ -7,12 +8,22 @@ import joblib
 import numpy as np
 import pandas as pd
 
+APP_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = APP_DIR.parent.parent
+if (APP_DIR / "insurance_fraud_detection").exists():
+    sys.path.insert(0, str(APP_DIR))
+else:
+    sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from insurance_fraud_detection.business.batch import score_claims
+from insurance_fraud_detection.business.decision import assess_probability
+from insurance_fraud_detection.business.inference import transform_with_bundle
+
 try:
     import gradio as gr
 except ImportError:
     gr = None
 
-APP_DIR = Path(__file__).resolve().parent
 ARTIFACT_DIR = APP_DIR / "artifacts"
 _bundle = joblib.load(ARTIFACT_DIR / "preprocessor.joblib")
 _model = joblib.load(ARTIFACT_DIR / "gradient_boosting_model.joblib")
@@ -90,25 +101,7 @@ def _choices(column):
 
 def _clean_and_transform(frame):
     """Apply canonical cleaning, encoding, feature order, and scaling."""
-    prepared = frame.loc[:, FEATURE_COLUMNS].copy()
-    for column in ("DayOfWeekClaimed", "MonthClaimed"):
-        prepared[column] = prepared[column].astype(str).replace("0", "Unknown")
-    age = pd.to_numeric(prepared["Age"], errors="coerce")
-    if age.isna().any():
-        raise ValueError("Age must be numeric")
-    prepared["Age"] = age.mask(age.eq(0), _bundle["age_fill_value"])
-    numeric_columns = _bundle["numeric_columns"]
-    categorical_columns = _bundle["categorical_columns"]
-    numeric = prepared[numeric_columns].apply(pd.to_numeric, errors="raise").to_numpy()
-    categorical = _bundle["encoder"].transform(prepared[categorical_columns])
-    columns = []
-    for column in FEATURE_COLUMNS:
-        if column in numeric_columns:
-            columns.append(numeric[:, numeric_columns.index(column)])
-        else:
-            columns.append(categorical[:, categorical_columns.index(column)])
-    encoded = np.column_stack(columns).astype(np.float32)
-    return _bundle["scaler"].transform(encoded).astype(np.float32)
+    return transform_with_bundle(frame, _bundle)
 
 
 def _frame_from_input(values: Mapping | Sequence):
@@ -139,13 +132,8 @@ def _frame_from_input(values: Mapping | Sequence):
 
 
 def _risk_interpretation(probability):
-    if probability < THRESHOLD:
-        return "Lower Fraud Risk", "Proceed with standard processing"
-    if probability < 0.40:
-        return "Elevated Fraud Risk", "Review claim details and supporting information"
-    if probability < 0.50:
-        return "High Review Priority", "Prioritize review of claim details and supporting information"
-    return "Very High Review Priority", "Prioritize the claim for investigation"
+    decision = assess_probability(probability)
+    return decision.risk_band, decision.recommended_action
 
 
 def _context_cues(values):
@@ -173,19 +161,44 @@ def predict_claim(values: Mapping | Sequence):
     frame = _frame_from_input(values)
     transformed = _clean_and_transform(frame)
     probability = float(_model.predict_proba(transformed)[0, 1])
-    interpretation, action = _risk_interpretation(probability)
+    decision = assess_probability(probability)
     return {
         "fraud_probability": probability,
         "threshold": THRESHOLD,
-        "risk_flag": bool(probability >= THRESHOLD),
-        "interpretation": interpretation,
-        "action": action,
+        "operating_threshold": decision.operating_threshold,
+        "risk_flag": decision.above_operating_threshold,
+        "above_operating_threshold": decision.above_operating_threshold,
+        "interpretation": decision.risk_band,
+        "risk_band": decision.risk_band,
+        "review_priority": decision.review_priority,
+        "action": decision.recommended_action,
+        "recommended_action": decision.recommended_action,
+        "business_interpretation": decision.business_interpretation,
         "context_cues": _context_cues(frame.iloc[0].to_dict()),
-        "disclaimer": (
-            "This model provides a risk signal for investigation support and does "
-            "not establish that a claim is fraudulent."
-        ),
+        "disclaimer": decision.disclaimer,
     }
+
+
+def score_batch(frame: pd.DataFrame) -> pd.DataFrame:
+    """Score a claim portfolio with the same deployed model and bundle."""
+    return score_claims(frame, _model, _bundle)
+
+
+def score_uploaded_claims(file_path):
+    """Gradio callback for a display-only investigation queue."""
+    if not file_path:
+        return pd.DataFrame(), "Upload a CSV containing the 29 claim fields."
+    path = getattr(file_path, "name", file_path)
+    try:
+        scored = score_batch(pd.read_csv(path))
+    except (OSError, TypeError, ValueError, KeyError) as exc:
+        return pd.DataFrame(), f"Input error: {exc}"
+    above = int(scored["above_operating_threshold"].sum())
+    summary = (f"{len(scored)} claims scored. {above} claims are at or above "
+               f"the validated operating threshold of {THRESHOLD:.2f}. "
+               "Rows are ranked by model score descending; this is an advisory "
+               "queue for human investigation.")
+    return scored, summary
 
 
 def predict_fraud(
@@ -211,9 +224,12 @@ def predict_fraud(
     cues = "\n".join(f"- {cue}" for cue in result["context_cues"])
     summary = (
         f"Model Fraud Risk Score : {result['fraud_probability']:.1%}\n"
-        f"Risk interpretation    : {result['interpretation']}\n"
-        f"Review action          : {result['action']}\n\n"
-        "Input context (not model explanations):\n"
+        f"Risk interpretation    : {result['risk_band']}\n"
+        f"Review priority        : {result['review_priority']}\n"
+        f"Recommended action     : {result['recommended_action']}\n"
+        f"Above threshold (0.24): {result['above_operating_threshold']}\n\n"
+        f"Business interpretation: {result['business_interpretation']}\n\n"
+        "Contextual review cues (not SHAP/model explanations):\n"
         f"{cues}\n\n"
         f"{result['disclaimer']}\n\n"
         "Deployment model: Gradient Boosting\n"
@@ -343,6 +359,20 @@ def create_demo():
                     "performance. Random Forest leads ROC-AUC, Decision Tree leads "
                     "recall, and ANN v3 is the strongest deep-learning model.\n\n"
                     "Predictions support investigation and do not establish fraud.")
+
+        with gr.Tab("Investigation Queue"):
+            gr.Markdown(
+                "### Investigation Queue\n"
+                "Upload a claims CSV using the same 29 predictor fields as the "
+                "claim form. `PolicyNumber`, when present, is display-only and "
+                "is excluded from model features. The queue ranks claims by "
+                "model score descending.")
+            batch_file = gr.File(label="Claims CSV", file_types=[".csv"])
+            batch_button = gr.Button("Score claims", variant="primary")
+            batch_summary = gr.Markdown()
+            batch_table = gr.Dataframe(label="Ranked investigation queue")
+            batch_button.click(fn=score_uploaded_claims, inputs=batch_file,
+                               outputs=[batch_table, batch_summary])
 
         all_inputs = [
             month, week_of_month, day_of_week, make, accident_area,

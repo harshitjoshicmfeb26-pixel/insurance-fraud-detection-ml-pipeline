@@ -1,23 +1,26 @@
 # Hugging Face deployment contract
 
-This document records the verified contract used by the live Space:
+This document records the current operational deployment contract for the Space:
 
 https://huggingface.co/spaces/harshitjoshiai/insurance-fraud-detector
 
-The Space is deployed separately from GitHub. This repository snapshot does not update or redeploy it.
+The Space is deployed separately from GitHub. Updating this repository does not update or redeploy the live Space.
 
-## Artifacts
+## Current deployed model
 
-The live application loads:
+The current operational model is a scikit-learn `GradientBoostingClassifier`. It was selected for the comparative benchmark's highest F1 and PR-AUC; it is not claimed to be universally best.
 
-~~~text
-fraud_detector_final.keras
-scaler.joblib
-~~~
+The deployed bundle loads:
 
-The application does not load separate encoder files. It contains explicit categorical and ordinal mappings in app.py.
+```text
+artifacts/gradient_boosting_model.joblib
+artifacts/preprocessor.joblib
+artifacts/deployment_metadata.json
+```
 
-## Feature order
+The deployment does not load `fraud_detector_final.keras`, `scaler.joblib`, or TensorFlow at inference time.
+
+## Preprocessing and feature contract
 
 The model expects exactly 29 features in this order:
 
@@ -51,43 +54,44 @@ The model expects exactly 29 features in this order:
 28. NumberOfCars
 29. BasePolicy
 
-## Mappings
+`PolicyNumber`, `RepNumber`, and `Year` are identifiers and are excluded from model features. The saved preprocessor contains the training-fitted `OrdinalEncoder`, `StandardScaler`, feature order, numeric/categorical column lists, and the training-derived `Age` replacement value.
 
-The live application uses these verified mapping groups:
+The current local deployment bundle includes a self-contained copy of the business package under `deployment/huggingface/insurance_fraud_detection/`. The app prefers this bundled package when run from the deployment directory; repository `src/` is only a local-development fallback. The bundled business files must be synchronized with `src/insurance_fraud_detection/business/` before a Space update.
 
-- Alphabetical label-style maps for month, day, make, claimed day, accident area, sex, marital status, fault, policy type, vehicle category, base policy, and yes/no fields.
-- Ordinal maps for vehicle price, policy/accident timing, policy/claim timing, past claims, vehicle age, policyholder age, supplements, address changes, and number of cars.
+## Operating threshold and presentation bands
 
-The exact executable mappings are preserved in app/app.py, which is a snapshot of the live source.
+The validation-selected binary operating threshold is:
 
-## Thresholds
+```text
+0.24
+```
 
-~~~text
-probability < 0.40  -> Low risk
-0.40 to 0.59        -> Medium risk
-probability >= 0.60 -> High risk
-~~~
+The current presentation policy is:
 
-These values must not be changed without coordinating a deployment update.
+```text
+score < 0.24         -> Lower Fraud Risk
+0.24 <= score < 0.40 -> Elevated Fraud Risk
+0.40 <= score < 0.50 -> High Review Priority
+score >= 0.50       -> Very High Review Priority
+```
 
-## Dependencies
+Only `0.24` is the validated model operating threshold. The `0.40` and `0.50` boundaries are UX/triage interpretation bands and must not be described as separately optimized ML thresholds.
 
-The live Space declares Gradio and uses TensorFlow, NumPy, scikit-learn, and joblib. Its verified requirements include:
+## ANN project history
 
-~~~text
-tensorflow==2.20.0
-gradio
-scikit-learn
-joblib
-numpy
-~~~
+TensorFlow/Keras, the canonical ANN, and ANN v3 remain part of the broader model-development and comparison project. ANN v3 is the strongest deep-learning model in the benchmark. These ANN artifacts are not the current operational Hugging Face model.
 
-## Verified edge-value differences
+## Dependencies and packaging
 
-The local dataset contains values that are not represented identically by the live UI mappings:
+The current deployment requires Gradio, pandas, NumPy, scikit-learn, and joblib. TensorFlow is not required for current inference. The deployment folder must be packaged with:
 
-- MonthClaimed == "0" occurs once in the dataset; the live MONTH_MAP does not include it.
-- AgeOfPolicyHolder == "18 to 20" occurs 15 times; the live AGEPH_MAP does not include it.
-- The dataset contains Make == "Porche" five times, while the live mapping uses "Porsche".
+- `app.py`
+- `insurance_fraud_detection/business/`
+- `artifacts/gradient_boosting_model.joblib`
+- `artifacts/preprocessor.joblib`
+- `artifacts/deployment_metadata.json`
+- `requirements.txt`
 
-These differences are documented only; they are not changed in Phase 1.
+## Safety requirements
+
+Do not change the model filename, preprocessor filename, feature order, categorical mappings, input field names, business policy, or operating threshold without updating and retesting the Space together with those changes. Model scores are risk signals for human review, not proof of fraud or automatic claim decisions.
